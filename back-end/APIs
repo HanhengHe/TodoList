@@ -1,0 +1,9 @@
+Get all users
+login
+signup
+
+Get tasks by userId
+createTask
+updateTasks
+addTasks
+deleteTasks
