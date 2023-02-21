@@ -1,0 +1,7 @@
+.task-list{
+    width: 75%;
+    justify-content: center;
+    display: flex;
+    flex-direction: column;
+    align-self: center;
+}

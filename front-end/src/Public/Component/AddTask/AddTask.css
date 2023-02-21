@@ -1,0 +1,23 @@
+.add-task-btn{
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+
+    color: white;
+    border: none;
+    padding: 5px;
+    font-size: 46px;
+    height: 60px;
+    width: 60px;
+    box-shadow: 0 2px 4px darkslategray;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: 40%;
+    background: #66e
+}
+
+.add-task-btn:active {
+    background-color: rgb(23, 23, 125);
+    box-shadow: 0 0 2px darkslategray;
+    transform: translateY(5px);
+}
