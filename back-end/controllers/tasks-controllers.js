@@ -5,23 +5,23 @@ const User = require('../models/user');
 const Task = require('../models/task');
 
 const getTaskById = async (req, res, next) => {
-    const placeId = req.params.pid;
+    const taskId = req.params.tid;
 
-    let place;
+    let task;
     try {
-        place = await Place.findById(placeId);
+        task = await Task.findById(taskId);
     } catch (err) {
-        const error = new HttpError('Something went wrong, could not find a place.', 500);
+        const error = new HttpError('Something went wrong, could not find the task.', 500);
         return next(error);
     }
 
-    if (! place) {
-        const error = new HttpError('Could not find place for the provided id.', 404);
+    if (! task) {
+        const error = new HttpError('Could not find task for the provided id.', 404);
         return next(error);
     }
 
     res.json({
-        place: place.toObject(
+        task: task.toObject(
             {getters: true}
         )
     });
@@ -30,22 +30,20 @@ const getTaskById = async (req, res, next) => {
 const getTasksByUserId = async (req, res, next) => {
     const userId = req.params.uid;
 
-    // let places;
-    let userWithPlaces;
+    let userWithTasks;
     try {
-        userWithPlaces = await User.findById(userId).populate('places');
+        userWithTasks = await User.findById(userId).populate('tasks');
     } catch (err) {
-        const error = new HttpError('Fetching places failed, please try again later.', 500);
+        const error = new HttpError('Fetching tasks failed, please try again later.', 500);
         return next(error);
     }
 
-    // if (!places || places.length === 0) {
-    if (! userWithPlaces || userWithPlaces.places.length === 0) {
-        return next(new HttpError('Could not find places for the provided user id.', 404));
+    if (! userWithTasks || userWithTasks.tasks.length === 0) {
+        return next(new HttpError('Could not find tasks for the provided user id.', 404));
     }
 
     res.json({
-        places: userWithPlaces.places.map(place => place.toObject({getters: true}))
+        places: userWithTasks.tasks.map(task => task.toObject({getters: true}))
     });
 };
 
@@ -55,52 +53,39 @@ const createTask = async (req, res, next) => {
         return next(new HttpError('Invalid inputs passed, please check your data.', 422));
     }
 
-    const {title, description, address} = req.body;
+    const {title, description, from, to} = req.body;
 
-    let coordinates;
+    const createdTask = new Task({state: false, title, description, from, to});
+
+    let userFrom, userTo;
     try {
-        coordinates = await getCoordsForAddress(address);
-    } catch (error) {
-        return next(error);
-    }
-
-    const createdPlace = new Place({
-        title,
-        description,
-        address,
-        location: coordinates,
-        image: req.file.path,
-        creator: req.userData.userId
-    });
-
-    let user;
-    try {
-        user = await User.findById(req.userData.userId);
+        userFrom = await User.findById(from);
+        userTo = await User.findById(to);
     } catch (err) {
-        const error = new HttpError('Creating place failed, please try again.', 500);
+        const error = new HttpError('Creating task failed, please try again.', 500);
         return next(error);
     }
 
-    if (! user) {
+    if (! userFrom || userTo) {
         const error = new HttpError('Could not find user for provided id.', 404);
         return next(error);
     }
 
-    console.log(user);
-
     try {
         const sess = await mongoose.startSession();
         sess.startTransaction();
-        await createdPlace.save({session: sess});
-        user.places.push(createdPlace);
-        await user.save({session: sess});
+        await createTask.save({session: sess});
+        userFrom.tasks.push(createdTask);
+        await userFrom.save({session: sess});
+        userTo.tasks.push(createdTask);
+        await userTo.save({session: sess});
         await sess.commitTransaction();
     } catch (err) {
-        const error = new HttpError('Creating place failed, please try again.', 500);
+        const error = new HttpError('Creating task failed, please try again.', 500);
         return next(error);
     }
 
-    res.status(201).json({place: createdPlace});
+    res.status(201).json({task: createTask});
 };
 
 const updateTask = async (req, res, next) => {
@@ -110,82 +95,81 @@ const updateTask = async (req, res, next) => {
     }
 
     const {title, description} = req.body;
-    const placeId = req.params.pid;
+    const taskId = req.params.tid;
+    const uid = req.userData.userId;
 
-    let place;
+    let task;
     try {
-        place = await Place.findById(placeId);
+        task = await Task.findById(taskId);
     } catch (err) {
-        const error = new HttpError('Something went wrong, could not update place.', 500);
+        const error = new HttpError('Something went wrong, could not update task.', 500);
         return next(error);
     }
 
-    if (place.creator.toString() !== req.userData.userId) {
-        const error = new HttpError('You are not allowed to edit this place.', 401);
+    if (task.from.toString() !== uid && task.to.toString() !== uid) {
+        const error = new HttpError('You are not allowed to edit this task.', 401);
         return next(error);
     }
 
-    place.title = title;
-    place.description = description;
+    task.title = title;
+    task.description = description;
 
     try {
-        await place.save();
+        await task.save();
     } catch (err) {
-        const error = new HttpError('Something went wrong, could not update place.', 500);
+        const error = new HttpError('Something went wrong, could not update task.', 500);
         return next(error);
     }
 
     res.status(200).json({
-        place: place.toObject(
+        task: task.toObject(
             {getters: true}
         )
     });
 };
 
 const deleteTask = async (req, res, next) => {
-    const placeId = req.params.pid;
+    const taskId = req.params.tid;
 
-    let place;
+    let task;
     try {
-        place = await Place.findById(placeId).populate('creator');
+        task = await Task.findById(taskId).populate('from');
     } catch (err) {
         const error = new HttpError('Something went wrong, could not delete place.', 500);
         return next(error);
     }
 
-    if (! place) {
-        const error = new HttpError('Could not find place for this id.', 404);
+    if (! task) {
+        const error = new HttpError('Could not find task for this id.', 404);
         return next(error);
     }
 
-    if (place.creator.id !== req.userData.userId) {
+    const uid = req.userData.userId;
+
+    if (task.from.id !== uid && task.to.id !== uid) {
         const error = new HttpError('You are not allowed to delete this place.', 401);
         return next(error);
     }
 
-    const imagePath = place.image;
-
     try {
         const sess = await mongoose.startSession();
         sess.startTransaction();
-        await place.remove({session: sess});
-        place.creator.places.pull(place);
-        await place.creator.save({session: sess});
+        await task.remove({session: sess});
+        task.from.tasks.pull(task);
+        await task.from.save({session: sess});
+        task.to.tasks.pull(task);
+        await task.to.save({session: sess});
         await sess.commitTransaction();
     } catch (err) {
-        const error = new HttpError('Something went wrong, could not delete place.', 500);
+        const error = new HttpError('Something went wrong, could not delete task.', 500);
         return next(error);
     }
 
-    fs.unlink(imagePath, err => {
-        console.log(err);
-    });
-
-    res.status(200).json({message: 'Deleted place.'});
+    res.status(200).json({message: 'Deleted task.'});
 };
 
 exports.getTaskById = getTaskById;
-exports.getTasksByUserId = getTaskByUserId;
+exports.getTasksByUserId = getTasksByUserId;
 exports.createTask = createTask;
 exports.updateTask = updateTask;
 exports.deleteTask = deleteTask;
