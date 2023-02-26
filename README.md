@@ -1,5 +1,4 @@
-- This is a personal practice of Web Development using *React--Node.js--Express--MongoDB*.
-- Some style of the front-end was not finished yet, also the MongoDB was not connected.
-I am coding for the back-end currently, and since it's a simple practice, it would be finished within one or two days.
-
-- I will come back and show more detail about this web app once I finish the skeleton of it.
+- This is a personal practice of Web Development using *React--Node.js--Express--MongoDB*. The idea came from my previous job--once we need our teammates to fix some problems, we come and talk to him, and we don't know if he was available or when he finish the fix. 
+- So this app is a to-do list app, we can send missions to anyone in our team, and definitely, we can send them to ourselves and manage the missions we send or receive. In my design, this app helps us know what tasks we still have, therefore better planning our time. Also, we can see the processing of the tasks we send to our teammates. Surely this is just a personal code practice, so never care too much about the purpose. :>
+- Some style of the front-end still need adjustment, also the connection between the front-end and the back-end need more adjustment.
+- I will come back and finish it as soon as I am available. Also, I will update my README to provide more details about my practice app. :<
